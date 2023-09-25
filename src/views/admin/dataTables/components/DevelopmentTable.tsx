@@ -12,13 +12,15 @@ import Card from 'components/card/Card';
 import Menu from 'components/menu/MainMenu';
 import { AndroidLogo, AppleLogo, WindowsLogo } from 'components/icons/Icons';
 import * as React from 'react';
+import { useEffect } from 'react';
 // Assets
 
 type RowObj = {
 	name: string;
-	tech: any;
 	date: string;
-	progress: number;
+	checkin: string;
+	checkout: string;
+	total_working_hours: string;
 };
 
 const columnHelper = createColumnHelper<RowObj>();
@@ -51,31 +53,6 @@ export default function ComplexTable(props: { tableData: any }) {
 				</Flex>
 			)
 		}),
-		columnHelper.accessor('tech', {
-			id: 'tech',
-			header: () => (
-				<Text
-					justifyContent='space-between'
-					align='center'
-					fontSize={{ sm: '10px', lg: '12px' }}
-					color='gray.400'>
-					STATUS
-				</Text>
-			),
-			cell: (info) => (
-				<Flex align='center'>
-					{info.getValue().map((item: string, key: number) => {
-						if (item === 'apple') {
-							return <AppleLogo key={key} color={iconColor} me='16px' h='18px' w='15px' />;
-						} else if (item === 'android') {
-							return <AndroidLogo key={key} color={iconColor} me='16px' h='18px' w='16px' />;
-						} else if (item === 'windows') {
-							return <WindowsLogo key={key} color={iconColor} h='18px' w='19px' />;
-						}
-					})}
-				</Flex>
-			)
-		}),
 		columnHelper.accessor('date', {
 			id: 'date',
 			header: () => (
@@ -87,29 +64,68 @@ export default function ComplexTable(props: { tableData: any }) {
 					DATE
 				</Text>
 			),
-			cell: (info) => (
-				<Text color={textColor} fontSize='sm' fontWeight='700'>
-					{info.getValue()}
-				</Text>
+			cell: (info: any) => (
+				<Flex align='center'>
+					<Text color={textColor} fontSize='sm' fontWeight='700'>
+						{info.getValue()}
+					</Text>
+				</Flex>
 			)
 		}),
-		columnHelper.accessor('progress', {
-			id: 'progress',
+		columnHelper.accessor('checkin', {
+			id: 'checkin',
 			header: () => (
 				<Text
 					justifyContent='space-between'
 					align='center'
 					fontSize={{ sm: '10px', lg: '12px' }}
 					color='gray.400'>
-					PROGRESS
+					CHECKIN
 				</Text>
 			),
-			cell: (info) => (
+			cell: (info: any) => (
 				<Flex align='center'>
-					<Text me='10px' color={textColor} fontSize='sm' fontWeight='700'>
-						{info.getValue()}%
+					<Text color={textColor} fontSize='sm' fontWeight='700'>
+						{info.getValue()}
 					</Text>
-					<Progress variant='table' colorScheme='brandScheme' h='8px' w='63px' value={info.getValue()} />
+				</Flex>
+			)
+		}),
+		columnHelper.accessor('checkout', {
+			id: 'checkout',
+			header: () => (
+				<Text
+					justifyContent='space-between'
+					align='center'
+					fontSize={{ sm: '10px', lg: '12px' }}
+					color='gray.400'>
+					CHECKOUT
+				</Text>
+			),
+			cell: (info: any) => (
+				<Flex align='center'>
+					<Text color={textColor} fontSize='sm' fontWeight='700'>
+						{info.getValue()}
+					</Text>
+				</Flex>
+			)
+		}),
+		columnHelper.accessor('total_working_hours', {
+			id: 'total_working_hours',
+			header: () => (
+				<Text
+					justifyContent='space-between'
+					align='center'
+					fontSize={{ sm: '10px', lg: '12px' }}
+					color='gray.400'>
+					TOTAL WORKING HOURS
+				</Text>
+			),
+			cell: (info: any) => (
+				<Flex align='center'>
+					<Text color={textColor} fontSize='sm' fontWeight='700'>
+						{info.getValue()}
+					</Text>
 				</Flex>
 			)
 		})
@@ -126,6 +142,19 @@ export default function ComplexTable(props: { tableData: any }) {
 		getSortedRowModel: getSortedRowModel(),
 		debugTable: true
 	});
+
+	const getApiData = async () => {
+		const response = await fetch(
+			process.env.REACT_APP_API_URL + "/attendance"
+		).then((response) => response.json());
+
+		setData(response?.data)
+	};
+
+	useEffect(() => {
+		getApiData();
+	}, []);
+
 	return (
 		<Card flexDirection='column' w='100%' px='0px' overflowX={{ sm: 'scroll', lg: 'hidden' }}>
 			<Flex px='25px' mb="8px" justifyContent='space-between' align='center'>
@@ -135,55 +164,63 @@ export default function ComplexTable(props: { tableData: any }) {
 				<Menu />
 			</Flex>
 			<Box>
-				<Table variant='simple' color='gray.500' mb='24px' mt="12px">
-					<Thead>
-						{table.getHeaderGroups().map((headerGroup) => (
-							<Tr key={headerGroup.id}>
-								{headerGroup.headers.map((header) => {
+				{
+					data && data?.length > 0 ?
+				
+						<Table variant='simple' color='gray.500' mb='24px' mt="12px">
+							<Thead>
+								{table.getHeaderGroups().map((headerGroup) => (
+									<Tr key={headerGroup.id}>
+										{headerGroup.headers.map((header) => {
+											return (
+												<Th
+													key={header.id}
+													colSpan={header.colSpan}
+													pe='10px'
+													borderColor={borderColor}
+													cursor='pointer'
+													onClick={header.column.getToggleSortingHandler()}>
+													<Flex
+														justifyContent='space-between'
+														align='center'
+														fontSize={{ sm: '10px', lg: '12px' }}
+														color='gray.400'>
+														{flexRender(header.column.columnDef.header, header.getContext())}{{
+															asc: '',
+															desc: '',
+														}[header.column.getIsSorted() as string] ?? null}
+													</Flex>
+												</Th>
+											);
+										})}
+									</Tr>
+								))}
+							</Thead>
+							<Tbody>
+								{table.getRowModel().rows.slice(0, 11).map((row) => {
 									return (
-										<Th
-											key={header.id}
-											colSpan={header.colSpan}
-											pe='10px'
-											borderColor={borderColor}
-											cursor='pointer'
-											onClick={header.column.getToggleSortingHandler()}>
-											<Flex
-												justifyContent='space-between'
-												align='center'
-												fontSize={{ sm: '10px', lg: '12px' }}
-												color='gray.400'>
-												{flexRender(header.column.columnDef.header, header.getContext())}{{
-													asc: '',
-													desc: '',
-												}[header.column.getIsSorted() as string] ?? null}
-											</Flex>
-										</Th>
+										<Tr key={row.id}>
+											{row.getVisibleCells().map((cell) => {
+												return (
+													<Td
+														key={cell.id}
+														fontSize={{ sm: '14px' }}
+														minW={{ sm: '150px', md: '200px', lg: 'auto' }}
+														borderColor='transparent'>
+														{flexRender(cell.column.columnDef.cell, cell.getContext())}
+													</Td>
+												);
+											})}
+										</Tr>
 									);
 								})}
-							</Tr>
-						))}
-					</Thead>
-					<Tbody>
-						{table.getRowModel().rows.slice(0, 11).map((row) => {
-							return (
-								<Tr key={row.id}>
-									{row.getVisibleCells().map((cell) => {
-										return (
-											<Td
-												key={cell.id}
-												fontSize={{ sm: '14px' }}
-												minW={{ sm: '150px', md: '200px', lg: 'auto' }}
-												borderColor='transparent'>
-												{flexRender(cell.column.columnDef.cell, cell.getContext())}
-											</Td>
-										);
-									})}
-								</Tr>
-							);
-						})}
-					</Tbody>
-				</Table>
+							</Tbody>
+						</Table>
+					:
+						<Text textAlign='center' minHeight={100} color={textColor} fontSize='18px' fontWeight='700' lineHeight='100%'>
+							No record found!
+						</Text>
+				}
 			</Box>
 		</Card>
 	);
